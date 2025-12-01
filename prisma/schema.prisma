@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("HOUSEKEEPER")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  assignments   Assignment[]
+  cleanings     Cleaning[]
+  incidents     Incident[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  floor       Int?
+  status      String    @default("VACANT")
+  isOccupied  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments Assignment[]
+  cleanings   Cleaning[]
+  incidents   Incident[]
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  roomId      String
+  userId      String
+  assignedAt  DateTime @default(now())
+  date        DateTime @default(now())
+  completed   Boolean  @default(false)
+
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId, date])
+  @@index([userId, date])
+  @@index([roomId, date])
+}
+
+model Cleaning {
+  id          String   @id @default(cuid())
+  roomId      String
+  userId      String
+  cleanedAt   DateTime @default(now())
+  date        DateTime @default(now())
+
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, date])
+  @@index([userId, date])
+}
+
+model Incident {
+  id          String        @id @default(cuid())
+  roomId      String
+  userId      String
+  description String
+  status      String    @default("OPEN")
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  room        Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos      IncidentPhoto[]
+
+  @@index([roomId])
+  @@index([status])
+}
+
+model IncidentPhoto {
+  id         String   @id @default(cuid())
+  incidentId String
+  url        String
+  createdAt  DateTime @default(now())
+
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
+
