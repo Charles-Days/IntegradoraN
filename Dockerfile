@@ -54,6 +54,9 @@ COPY --from=builder /app/prisma ./prisma
 RUN mkdir -p ./public/uploads/incidents
 RUN chown -R nextjs:nodejs ./public/uploads
 
+# Set permissions for prisma directory (for SQLite database)
+RUN chown -R nextjs:nodejs ./prisma
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
@@ -62,9 +65,10 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma client
+# Copy Prisma client and CLI
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 USER nextjs
 
