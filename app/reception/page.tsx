@@ -348,6 +348,32 @@ export default function ReceptionPage() {
                         <span className="text-sm font-medium text-primary-900">Habitación {incident.room.number}</span>
                       </div>
                       <p className="text-sm text-primary-600 mt-2">{incident.description}</p>
+                      {/* Photos Gallery */}
+                      {incident.photos && incident.photos.length > 0 && (
+                        <div className="mt-3 flex gap-2 flex-wrap">
+                          {incident.photos.map((photo: any, index: number) => (
+                            <a
+                              key={photo.id || index}
+                              href={photo.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative group"
+                            >
+                              <img
+                                src={photo.url}
+                                alt={`Foto ${index + 1}`}
+                                className="w-20 h-20 object-cover rounded-lg border border-primary-200
+                                         hover:border-accent-500 transition-colors cursor-pointer"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                                <svg className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                </svg>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       <p className="text-xs text-primary-400 mt-2">
                         Reportado por {incident.user.name} · {new Date(incident.createdAt).toLocaleDateString('es-ES', {
                           day: 'numeric',
