@@ -13,6 +13,8 @@ import { UserRole, RoomStatus } from '@/lib/enums';
 import { db } from '@/lib/db';
 import { SignalIcon, CameraIcon, CleaningIcon, CheckIcon, HotelIcon, HistoryIcon } from '@/components/icons';
 import { useToast } from '@/components/ui/Toast';
+import PushNotificationManager from '@/components/PushNotificationManager';
+import { usePushServiceWorker } from '@/hooks/usePushServiceWorker';
 
 export default function HousekeeperPage() {
   const { data: session } = useSession();
@@ -26,6 +28,9 @@ export default function HousekeeperPage() {
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [offlineCleanedRooms, setOfflineCleanedRooms] = useState<string[]>([]);
   const [viewAll, setViewAll] = useState(false);
+
+  // Register push service worker
+  usePushServiceWorker();
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -288,6 +293,9 @@ export default function HousekeeperPage() {
             </div>
           </div>
         </div>
+
+        {/* Push Notifications */}
+        <PushNotificationManager />
 
         {/* Quick Access to History */}
         <button

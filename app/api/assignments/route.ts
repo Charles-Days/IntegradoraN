@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { UserRole, RoomStatus } from '@/lib/enums';
+import { sendAssignmentNotification } from '@/lib/push-notifications';
 
 export async function GET(request: NextRequest) {
   try {
@@ -116,6 +117,25 @@ export async function POST(request: NextRequest) {
         status: RoomStatus.CLEANING_PENDING as string,
       },
     });
+
+    // Get room numbers for notification
+    const rooms = await prisma.room.findMany({
+      where: { id: { in: roomIds } },
+      select: { number: true },
+    });
+    const roomNumbers = rooms.map((r) => r.number);
+
+    // Send push notification to the assigned housekeeper
+    try {
+      await sendAssignmentNotification(
+        userId,
+        roomNumbers,
+        session.user.name || session.user.email || 'Recepción'
+      );
+    } catch (notifError) {
+      console.error('Error sending push notification:', notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json(assignments, { status: 201 });
   } catch (error) {
