@@ -16,7 +16,46 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const date = searchParams.get('date');
 
-    if (session.user.role === UserRole.HOUSEKEEPER && userId) {
+    if (session.user.role === UserRole.HOUSEKEEPER) {
+      const viewAll = searchParams.get('viewAll') === 'true';
+
+      if (viewAll) {
+        // Return all rooms (not disabled) for housekeeper to see
+        const rooms = await prisma.room.findMany({
+          where: {
+            status: { not: RoomStatus.DISABLED as string },
+          },
+          include: {
+            assignments: {
+              where: date ? { date: new Date(date) } : undefined,
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true },
+                },
+              },
+            },
+            cleanings: {
+              where: date ? { date: new Date(date) } : undefined,
+              take: 1,
+              orderBy: { cleanedAt: 'desc' },
+              include: {
+                user: {
+                  select: { id: true, name: true },
+                },
+              },
+            },
+            incidents: {
+              where: { status: 'OPEN' },
+              take: 1,
+            },
+          },
+          orderBy: { number: 'asc' },
+        });
+
+        return NextResponse.json(rooms);
+      }
+
+      // Return only assigned rooms for housekeeper
       const assignments = await prisma.assignment.findMany({
         where: {
           userId: session.user.id,
@@ -43,12 +82,19 @@ export async function GET(request: NextRequest) {
         orderBy: { room: { number: 'asc' } },
       });
 
-      return NextResponse.json(assignments.map((a) => a.room));
+      // Include assignedAt to compare with cleaning time
+      return NextResponse.json(assignments.map((a) => ({
+        ...a.room,
+        assignedAt: a.assignedAt,
+      })));
     }
 
     if (session.user.role === UserRole.RECEPTION || session.user.role === UserRole.ADMIN) {
       const rooms = await prisma.room.findMany({
         include: {
+          lastCleanedBy: {
+            select: { id: true, name: true, email: true },
+          },
           assignments: {
             where: date ? { date: new Date(date) } : undefined,
             include: {
@@ -124,15 +170,42 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, status, isOccupied, number, floor } = body;
 
+    // Get current room state to check for occupy/vacate transitions
+    const currentRoom = await prisma.room.findUnique({
+      where: { id },
+    });
+
+    if (!currentRoom) {
+      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
     const updateData: any = {};
     if (status) updateData.status = status;
-    if (isOccupied !== undefined) updateData.isOccupied = isOccupied;
     if (number) updateData.number = number;
     if (floor !== undefined) updateData.floor = floor;
+
+    // Handle occupy/vacate transitions
+    if (isOccupied !== undefined) {
+      updateData.isOccupied = isOccupied;
+
+      if (isOccupied && !currentRoom.isOccupied) {
+        // Room is being occupied - set status to OCCUPIED
+        updateData.status = RoomStatus.OCCUPIED as string;
+      } else if (!isOccupied && currentRoom.isOccupied) {
+        // Room is being vacated (checkout) - set status to CHECKOUT_PENDING
+        // This indicates the room needs cleaning after checkout
+        updateData.status = RoomStatus.CHECKOUT_PENDING as string;
+      }
+    }
 
     const room = await prisma.room.update({
       where: { id },
       data: updateData,
+      include: {
+        lastCleanedBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
     });
 
     return NextResponse.json(room);

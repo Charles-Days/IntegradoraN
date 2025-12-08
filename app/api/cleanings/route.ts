@@ -85,17 +85,15 @@ export async function POST(request: NextRequest) {
       where: { id: roomId },
       data: {
         status: RoomStatus.CLEAN as string,
+        lastCleanedById: session.user.id,
       },
     });
 
-    await prisma.assignment.updateMany({
+    await prisma.assignment.deleteMany({
       where: {
         roomId,
         userId: session.user.id,
         date: cleaningDate,
-      },
-      data: {
-        completed: true,
       },
     });
 

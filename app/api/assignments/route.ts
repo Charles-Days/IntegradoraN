@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { UserRole } from '@/lib/enums';
+import { UserRole, RoomStatus } from '@/lib/enums';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
     const userId = searchParams.get('userId');
 
-    if (session.user.role === UserRole.RECEPTION) {
+    if (session.user.role === UserRole.RECEPTION || session.user.role === UserRole.ADMIN) {
       const assignments = await prisma.assignment.findMany({
         where: {
           date: new Date(date),
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || session.user.role !== UserRole.RECEPTION) {
+    if (!session?.user || (session.user.role !== UserRole.RECEPTION && session.user.role !== UserRole.ADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
               date: new Date(date),
             },
           },
-          update: {},
+          update: {
+            assignedAt: new Date(),
+          },
           create: {
             roomId,
             userId,
@@ -104,6 +106,16 @@ export async function POST(request: NextRequest) {
         })
       )
     );
+
+    // Update room status to CLEANING_PENDING when assigned
+    await prisma.room.updateMany({
+      where: {
+        id: { in: roomIds },
+      },
+      data: {
+        status: RoomStatus.CLEANING_PENDING as string,
+      },
+    });
 
     return NextResponse.json(assignments, { status: 201 });
   } catch (error) {
@@ -116,7 +128,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user || session.user.role !== UserRole.RECEPTION) {
+    if (!session?.user || (session.user.role !== UserRole.RECEPTION && session.user.role !== UserRole.ADMIN)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
