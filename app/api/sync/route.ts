@@ -79,20 +79,45 @@ export async function POST(request: NextRequest) {
           });
 
           for (let i = 0; i < incident.photos.length; i++) {
-            const photoDataUrl = incident.photos[i];
-            const base64Data = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
-            const buffer = Buffer.from(base64Data, 'base64');
-            const filename = `${createdIncident.id}-${Date.now()}-${i}.jpg`;
-            const path = join(uploadsDir, filename);
+            try {
+              const photoDataUrl = incident.photos[i];
+              if (!photoDataUrl || typeof photoDataUrl !== 'string') {
+                console.error('Invalid photo data at index', i);
+                continue;
+              }
 
-            await writeFile(path, buffer);
+              // Handle both data URL format and raw base64
+              const base64Data = photoDataUrl.includes('base64,')
+                ? photoDataUrl.split('base64,')[1]
+                : photoDataUrl;
 
-            await prisma.incidentPhoto.create({
-              data: {
-                incidentId: createdIncident.id,
-                url: `/uploads/incidents/${filename}`,
-              },
-            });
+              if (!base64Data) {
+                console.error('Could not extract base64 data from photo at index', i);
+                continue;
+              }
+
+              const buffer = Buffer.from(base64Data, 'base64');
+
+              // Detect image type from data URL or default to jpg
+              let extension = 'jpg';
+              if (photoDataUrl.includes('image/png')) extension = 'png';
+              else if (photoDataUrl.includes('image/jpeg')) extension = 'jpg';
+              else if (photoDataUrl.includes('image/webp')) extension = 'webp';
+
+              const filename = `${createdIncident.id}-${Date.now()}-${i}.${extension}`;
+              const filePath = join(uploadsDir, filename);
+
+              await writeFile(filePath, buffer);
+
+              await prisma.incidentPhoto.create({
+                data: {
+                  incidentId: createdIncident.id,
+                  url: `/uploads/incidents/${filename}`,
+                },
+              });
+            } catch (photoError) {
+              console.error('Error processing photo at index', i, ':', photoError);
+            }
           }
 
           await prisma.room.update({
