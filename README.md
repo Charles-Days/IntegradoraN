@@ -381,3 +381,4 @@ Después de ejecutar `npm run db:seed`, puedes usar:
 
 **⚠️ IMPORTANTE**: Cambia estas contraseñas en producción.
 
+
