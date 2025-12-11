@@ -34,7 +34,7 @@ pipeline {
             steps {
                 echo 'Construyendo imagen Docker...'
                 dir('/home/ubuntu/app/IntegradoraN') {
-                    sh 'docker-compose build --no-cache'
+                    sh 'docker compose build --no-cache'
                 }
             }
         }
@@ -43,8 +43,8 @@ pipeline {
             steps {
                 echo 'Desplegando aplicacion...'
                 dir('/home/ubuntu/app/IntegradoraN') {
-                    sh 'docker-compose down || true'
-                    sh 'docker-compose up -d'
+                    sh 'docker compose down || true'
+                    sh 'docker compose up -d'
                 }
             }
         }
