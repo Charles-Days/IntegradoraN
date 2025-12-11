@@ -384,3 +384,4 @@ Después de ejecutar `npm run db:seed`, puedes usar:
 
 # Test webhook Thu Dec 11 10:21:58 CST 2025
 # Webhook test 1765471722
+# Deploy automático funcionando! Thu Dec 11 11:27:37 CST 2025
