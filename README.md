@@ -382,3 +382,4 @@ Después de ejecutar `npm run db:seed`, puedes usar:
 **⚠️ IMPORTANTE**: Cambia estas contraseñas en producción.
 
 
+# Test webhook Thu Dec 11 10:21:58 CST 2025
