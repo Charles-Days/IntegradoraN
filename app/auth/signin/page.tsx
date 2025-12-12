@@ -56,7 +56,7 @@ export default function SignInPage() {
               <HotelIcon className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-primary-900 mb-2">
-              Hola papu :v
+              Hola papu :v c
             </h1>
             <p className="text-primary-500">
               Gestión integral de limpieza
