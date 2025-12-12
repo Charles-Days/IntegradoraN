@@ -25,7 +25,9 @@ pipeline {
             steps {
                 echo 'Actualizando repositorio en servidor...'
                 dir('/home/ubuntu/app/IntegradoraN') {
-                    sh 'git pull origin main || true'
+                    sh 'git config --global --add safe.directory /home/ubuntu/app/IntegradoraN'
+                    sh 'git fetch origin main'
+                    sh 'git reset --hard origin/main'
                 }
             }
         }
